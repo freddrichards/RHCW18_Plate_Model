@@ -350,9 +350,9 @@ contains
 
     ! determine heat flow as a function of age
     cpdat(0)=((0.15*((k0fofa)+(k1fofa*(Ta(0)**(-1./2.)))+(k3fofa*(Ta(0)**(-3.)))))+&
-        (0.2*(c0_cpx+(c1_cpx*Ta(0))+(c2_cpx*(Ta(0)**(-2)))+(c3_cpx*(Ta(0)**(-1./2.)))+&
-            (c4_cpx*(Ta(0)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(0))+(c2_plag*(Ta(0)**(-2)))+&
-                (c3_plag*(Ta(0)**(-1./2.)))+(c4_plag*(Ta(0)**2.))))) ! heat capacity 
+		(0.2*(c0_cpx+(c1_cpx*Ta(0))+(c2_cpx*(Ta(0)**(-2)))+(c3_cpx*(Ta(0)**(-1./2.)))+&
+			(c4_cpx*(Ta(0)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(0))+(c2_plag*(Ta(0)**(-2)))+&
+				(c3_plag*(Ta(0)**(-1./2.)))+(c4_plag*(Ta(0)**2.))))) ! heat capacity 
     Ddat(0)=(a_crust+(b_crust*exp(-(Ta(0)-T0)/c_crust))+(d_crust*exp(-(Ta(0)-T0)/e_crust)))*1e-6 ! diffusivity
     krad(0)=Ar*exp(-(((Ta(0)-Tar)**(2.))/(2*(xa**(2.)))))+Br*exp(-(((Ta(0)-Tbr)**(2.))/(2*(xb**(2.))))) ! radiative conductivity
     ktot=(pdat(0)*Ddat(0)*cpdat(0)*exp(dkP*(prdat0(0)/1.e+9)))+krad(0) ! total conductivity
@@ -415,9 +415,9 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
       intalphaT1(i)=(a0c*(T1(i)-T0))+((a1c/2.)*((T1(i)**2.)-(T0**2.)))
       p1(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT1(i)))
       cp1(i)=((0.15*((k0fofa)+(k1fofa*(T1(i)**(-1./2.)))+(k3fofa*(T1(i)**(-3.)))))+&
-      (0.2*(c0_cpx+(c1_cpx*T1(i))+(c2_cpx*(T1(i)**(-2.)))+(c3_cpx*(T1(i)**(-1./2.)))+&
-      (c4_cpx*(T1(i)**2.))))+(0.65*(c0_plag+(c1_plag*T1(i))+(c2_plag*(T1(i)**(-2.)))+&
-          (c3_plag*(T1(i)**(-1./2.)))+(c4_plag*(T1(i)**2.)))))
+	  	(0.2*(c0_cpx+(c1_cpx*T1(i))+(c2_cpx*(T1(i)**(-2.)))+(c3_cpx*(T1(i)**(-1./2.)))+&
+			(c4_cpx*(T1(i)**2.))))+(0.65*(c0_plag+(c1_plag*T1(i))+(c2_plag*(T1(i)**(-2.)))+&
+				(c3_plag*(T1(i)**(-1./2.)))+(c4_plag*(T1(i)**2.)))))
     end do
     do i=zc+1,nz
       intalphaT1(i)=(a0*(T1(i)-T0))+((a1/2.)*((T1(i)**2.)-(T0**2.)))
@@ -429,9 +429,9 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
       intalphaT2(i)=(a0c*(T2(i)-T0))+((a1c/2.)*((T2(i)**2.)-(T0**2.)))
       p2(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT2(i)))
       cp2(i)=((0.15*((k0fofa)+(k1fofa*(T2(i)**(-1./2.)))+(k3fofa*(T2(i)**(-3.)))))+&
-      (0.2*(c0_cpx+(c1_cpx*T2(i))+(c2_cpx*(T2(i)**(-2.)))+(c3_cpx*(T2(i)**(-1./2.)))+&
-      (c4_cpx*(T2(i)**2.))))+(0.65*(c0_plag+(c1_plag*T2(i))+(c2_plag*(T2(i)**(-2.)))+&
-          (c3_plag*(T2(i)**(-1./2.)))+(c4_plag*(T2(i)**2.)))))
+      	(0.2*(c0_cpx+(c1_cpx*T2(i))+(c2_cpx*(T2(i)**(-2.)))+(c3_cpx*(T2(i)**(-1./2.)))+&
+      		(c4_cpx*(T2(i)**2.))))+(0.65*(c0_plag+(c1_plag*T2(i))+(c2_plag*(T2(i)**(-2.)))+&
+        		(c3_plag*(T2(i)**(-1./2.)))+(c4_plag*(T2(i)**2.)))))
     end do
     do i=zc+1,nz
       intalphaT2(i)=(a0*(T2(i)-T0))+((a1/2.)*((T2(i)**2.)-(T0**2.)))
@@ -443,9 +443,9 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
       intalphaT3(i)=(a0c*(T3(i)-T0))+((a1c/2.)*((T3(i)**2.)-(T0**2.)))
       p3(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT3(i)))
       cp3(i)=((0.15*((k0fofa)+(k1fofa*(T3(i)**(-1./2.)))+(k3fofa*(T3(i)**(-3.)))))+&
-      (0.2*(c0_cpx+(c1_cpx*T3(i))+(c2_cpx*(T3(i)**(-2.)))+(c3_cpx*(T3(i)**(-1./2.)))+&
-      (c4_cpx*(T3(i)**2.))))+(0.65*(c0_plag+(c1_plag*T3(i))+(c2_plag*(T3(i)**(-2.)))+&
-          (c3_plag*(T3(i)**(-1./2.)))+(c4_plag*(T3(i)**2.)))))
+	  	(0.2*(c0_cpx+(c1_cpx*T3(i))+(c2_cpx*(T3(i)**(-2.)))+(c3_cpx*(T3(i)**(-1./2.)))+&
+			(c4_cpx*(T3(i)**2.))))+(0.65*(c0_plag+(c1_plag*T3(i))+(c2_plag*(T3(i)**(-2.)))+&
+				(c3_plag*(T3(i)**(-1./2.)))+(c4_plag*(T3(i)**2.)))))
     end do
     do i=zc+1,nz
       intalphaT3(i)=(a0*(T3(i)-T0))+((a1/2.)*((T3(i)**2.)-(T0**2.)))
@@ -483,9 +483,9 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
       intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.)))
       p(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i)))    
       cp(i)=((0.15*((k0fofa)+(k1fofa*(Ta(i)**(-1./2.)))+(k3fofa*(Ta(i)**(-3.)))))+&
-    (0.2*(c0_cpx+(c1_cpx*Ta(i))+(c2_cpx*(Ta(i)**(-2.)))+(c3_cpx*(Ta(i)**(-1./2.)))+&
-        (c4_cpx*(Ta(i)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(i))+(c2_plag*(Ta(i)**(-2.)))+&
-        (c3_plag*(Ta(i)**(-1./2.)))+(c4_plag*(Ta(i)**2.)))))
+	  	(0.2*(c0_cpx+(c1_cpx*Ta(i))+(c2_cpx*(Ta(i)**(-2.)))+(c3_cpx*(Ta(i)**(-1./2.)))+&
+			(c4_cpx*(Ta(i)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(i))+(c2_plag*(Ta(i)**(-2.)))+&
+				(c3_plag*(Ta(i)**(-1./2.)))+(c4_plag*(Ta(i)**2.)))))
       Dc(i)=(a_crust+(b_crust*exp(-(Ta(i)-T0)/c_crust))+(d_crust*exp(-(Ta(i)-T0)/e_crust)))*1e-6
       krad(i)=Ar*exp(-(((Ta(i)-Tar)**(2.))/(2*(xa**(2.)))))+Br*exp(-(((Ta(i)-Tbr)**(2.))/(2*(xb**(2.)))))
       ka(i)=(p(i)*Dc(i)*cp(i)*exp(dkP*(prdat0(i)/1.e+9)))+krad(i)
