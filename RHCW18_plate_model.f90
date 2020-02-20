@@ -9,83 +9,116 @@ program RHCW18
 ! Journal of Geophysical Research: Solid Earth, Volume 123, 9136-9161.
 !
 ! v1.1 - August 2019
-
+  
   use global
   implicit none
   
-  integer,  parameter :: itmax = 100000000     ! maximum number of iterations
-
-  real(wp), parameter :: tmax  = 9.4670208e15  ! s - model run time
-
-  real(wp), parameter :: dzinit = 1000.        ! m - initial depth interval between nodes (i and i+1 positions)
-  integer,  parameter :: zc     = 7            ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
-
-  integer,  parameter :: ditplot = 10000				! no. iterations between dumping outputs
-  real(wp), parameter :: dtplot = 3.1556736e12_wp						! time between datapoints
-  logical,  parameter :: hplot = .true.						! turn on write h.txt
-  real(wp), parameter :: frac_ol=0.11
-
-  real(wp), parameter :: p0=3330.
-  real(wp), parameter :: p0c=2950.
-  real(wp), parameter :: pw0=1030.
+  ! ------------------------------------------------------------------------
+  ! Set input parameters
+  ! ------------------------------------------------------------------------
   
+  ! model setup
+  integer,  parameter :: itmax = 100000000     ! maximum number of iterations
+  real(wp), parameter :: tmax  = 9.4670208e15  ! model run time
+  real(wp), parameter :: dzinit = 1000.        ! initial depth interval between nodes (i and i+1 positions)
+  integer,  parameter :: zc     = 7            ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
+  real(wp), parameter :: T0=273. ! reference temperature
+  real(wp), parameter :: roundtol=1. ! rounding tolerance (K)
+  integer,  parameter :: ditplot = 10000			! no. iterations between outputs
+  real(wp), parameter :: dtplot = 3.1556736e12_wp	! time between outputs
+  logical,  parameter :: hplot = .true.				! turn on write h.txt
+
+	
+  ! reference densities
+  real(wp), parameter :: p0=3330. ! mantle
+  real(wp), parameter :: p0c=2950. ! crust
+  real(wp), parameter :: pw0=1030. ! water
+  real(wp), parameter :: g=9.81 ! gravitational acceleration
+  
+  ! pressure-dependent density (Grose & Afonso, 2013)
+  real(wp), parameter ::  K0=130.e9 ! bulk modulus at reference temperature and pressure
+  real(wp), parameter ::  KT=4.8 ! temperature derivative of bulk modulus
+  real(wp), parameter ::  grun=6. ! Gruneisen parameter
+  
+
+
+  
+  ! olivine thermal expansivity (Bouhifd et al. 1996)
   real(wp), parameter :: a0=2.832e-5
   real(wp), parameter :: a1=0.758e-8
-  real(wp), parameter :: a0di=2.1e-5
+  
+  ! crustal thermal expansivity Grose & Afonso, 2013)
+  ! diopside
+  real(wp), parameter :: a0di=2.1e-5 
   real(wp), parameter :: a1di=1.75e-8
+  ! anorthite
   real(wp), parameter :: a0an=0.87e-5
   real(wp), parameter :: a1an=0.9e-8
+  ! albite
   real(wp), parameter :: a0ab=1.75e-5
   real(wp), parameter :: a1ab=1.95e-8
+  ! crust
   real(wp), parameter :: a0c=1.639e-5
   real(wp), parameter :: a1c=1.322e-8
 
-! Korenaga & Korenaga (2016) Cp: 
 
+
+  ! mantle heat capacity (Korenaga & Korenaga 2016): 
   real(wp), parameter :: c0_mantle=1580.
   real(wp), parameter :: c1_mantle =12230.
   real(wp), parameter :: c2_mantle =1694.e6
   
+  ! crustal heat capacity (Grose and Afonso, 2013)
+  ! olivine
   real(wp), parameter :: k0fofa=1.6108e3
   real(wp), parameter :: k1fofa=-1.24788e4
   real(wp), parameter :: k3fofa=-1.728477e9
-
+  ! clinopyroxene
   real(wp), parameter :: c0_cpx=2.1715e3
   real(wp), parameter :: c1_cpx=-4.555e-1
   real(wp), parameter :: c2_cpx=1.1332e6
   real(wp), parameter :: c3_cpx=-2.22716e4
   real(wp), parameter :: c4_cpx=1.299e-4
-
+  ! plagioclase
   real(wp), parameter :: c0_plag =1.85757e3
   real(wp), parameter :: c1_plag =-3.324e-1
   real(wp), parameter :: c2_plag =-5.061e6
   real(wp), parameter :: c3_plag =-1.64946e4
   real(wp), parameter :: c4_plag =1.505e-4
 
+
+
+  ! mantle diffusivity (Grose & Afonso, 2013)
   real(wp), parameter ::  a_ol =0.565
   real(wp), parameter ::  b_ol =0.67
   real(wp), parameter ::  c_ol =590.
   real(wp), parameter ::  d_ol =1.4
   real(wp), parameter ::  e_ol =135
   
+  ! crustal diffusivity (Grose & Afonso, 2013)
+  ! clinopyroxene
   real(wp), parameter ::  a_cpx =0.59
   real(wp), parameter ::  b_cpx =1.03 
   real(wp), parameter ::  c_cpx =386. 
   real(wp), parameter ::  d_cpx =0.928
   real(wp), parameter ::  e_cpx =125.
-
+  ! plagioclase
   real(wp), parameter ::  a_plag =0.36
   real(wp), parameter ::  b_plag =0.4
   real(wp), parameter ::  c_plag =300.
-
+  !	crust
   real(wp), parameter ::  a_crust =0.414
   real(wp), parameter ::  b_crust =0.22
   real(wp), parameter ::  c_crust =455.
   real(wp), parameter ::  d_crust =0.371
   real(wp), parameter ::  e_crust =226.
   
+  
+  
+  ! Pressure dependence of lattice conductiviity
   real(wp), parameter ::  dkP =0.05 ! in GPa^-1
   
+  ! Radiative conductivity (Grose & Afonso, 2013)
   real(wp), parameter ::  d = 0.5
   real(wp), parameter ::  Ar = (1.8*(1.-exp(-((d**(1.3))/0.15))))-(1.-exp(-((d**(0.5))/5.)))
   real(wp), parameter ::  Br = (11.7*exp(-d/0.159))+(6.*exp(-((d**(3.))/10.)))
@@ -94,337 +127,290 @@ program RHCW18
   real(wp), parameter ::  xa = 167.5+(505.*exp(-((d**0.5)/0.85)))
   real(wp), parameter ::  xb = 465.+(1700.*exp(-((d**0.94)/0.175)))
   
-  real(wp), parameter ::  T0=273.
   
-  real(wp), parameter ::  K0=130.e9
-  real(wp), parameter ::  KT=4.8
-  real(wp), parameter ::  grun=6.
-  real(wp), parameter ::  g=9.81
-  real(wp), parameter ::  roundtol=1.
-  integer , parameter ::  nrd=20 !for ridge depth
-  
-  integer :: narg, cptArg, zp, rd, nz, Tpot !#of arg & counter of arg
+  ! ------------------------------------------------------------------------
+  ! Read input arguments
+  ! ------------------------------------------------------------------------
+  integer :: narg, cptArg, zp, rd, nz, Tpot ! no. of arguments, argument counter and input arguments
   character(30)  ::  name
   
-  narg=command_argument_count()
+  narg=command_argument_count() ! count number of input arguments
   !Loop over the arguments
   if(narg>0)then
-  !loop across options
     do cptArg=1,narg
       call get_command_argument(cptArg,name)
       if(cptArg==1)then
-        read(name,*)Tpot
+        read(name,*)Tpot ! read potential temperature in deg C
       else if(cptArg==2)then
-  	read(name,*)zp
+  	read(name,*)zp ! read plate thickness in km
       else if(cptArg==3)then
-  	read(name,*)rd
+  	read(name,*)rd ! read ridge depth in m
       end if
     end do
   else
-    write(*,*)"No input parameters given, format is ./cool Tpot zp"
+	! Throw error if insufficient arguments.
+    write(*,*)"Not enough input parameters given, format is ./cool Tpot zp rd"
+	stop
   end if 
   
-  nz=zp
+  nz=zp ! set plate thickness to number of data points
   
-  call plate_cooling(Tpot,nz)
+  call plate_cooling(Tpot,nz) ! call main program
   
-  ! ------------------------------------------------------------------------
+  
+! ------------------------------------------------------------------------
 contains
-
 ! ------------------------------------------------------------------------  
+  
   subroutine plate_cooling(Tpot,nz)
-
+    ! ------------------------------------------------------------------------
+    ! Master subroutine
+    ! ------------------------------------------------------------------------
     use global
     implicit none
 
-    ! Variables
-    real(wp) :: zlen, t, dt, toterr, tplot, Tbase, dtinit
-    real(wp) :: kt, sump0, depth, age, xmin,ref_rd,ref_sub
-    integer :: ifcheck, itlast, it, itplot, i, nz, Tpot
-    real(wp), dimension(0:nz)  :: Tm, Told, Tm1, Tm2, Tmelt, pdat0, prdat0,dz0
-    real(wp), dimension(0:nz)  :: dV0,alphaP0,rhoP0,intalphaT0,z0,misfit,dz
+    ! set variables
+    real(wp) :: t, dt, tplot, Tbase, dtinit
+    real(wp) :: sump0, ref_rd, ref_sub, xmin
+    integer :: it, i, nz, Tpot
+    real(wp), dimension(0:nz)  :: Tm, Told, pdat0, prdat0, dz0
+    real(wp), dimension(0:nz)  :: dV0, alphaP0, rhoP0, intalphaT0, z0, misfit
     
+	! initialise filenames
     character(30)  ::  hffile
     character(30)  ::  Tinfile
     character(30)  ::  Tgridfile
-    character(30)  ::  rhogridfile
-    character(30)  ::  depthfile1
-    character(30)  ::  depthfile2
-    character(30)  ::  depthfile3
-    character(30)  ::  compfile
-    character(30)  ::  initPfile
+    character(30)  ::  depthfile
     
+	! set file names
     if (nz<100) then
       write (hffile, "('hf-',I4,'-',I2,'.dat')")Tpot,zp ! output file for heat flow
-      write (depthfile1, "('depth-zc-',I4,'-',I2,'.dat')")Tpot,zp ! output file for subsidence
-!       write (depthfile2, "('depth-kk-',I4,'-',I2,'.dat')")Tpot,zp ! output file for K&K16 subsidence
-      write (depthfile3, "('depth-dw-',I4,'-',I2,'-',I4,'.dat')")Tpot,zp,rd ! output file for K&K16 subsidence
-      write (Tinfile, "('../mac',I4,'.dat')")Tpot ! input temperature profile
-      write (Tgridfile, "('Tgrid-',I4,'-',I2,'.dat')")Tpot,zp ! output file temp grid
-      write (rhogridfile, "('rhogrid-',I4,'-',I2,'.dat')")Tpot,zp ! output file dense grid
-!       write (compfile, "('compensation-',I4,'-',I2,'.tzd')")Tpot,zp ! output file dense grid
-!       write (initPfile, "('initial_pressure-',I4,'-',I2,'.dat')")Tpot,zp ! output file dV grid
+      write (depthfile, "('depth-',I4,'-',I2,'-',I4,'.dat')")Tpot,zp,rd ! output file for subsidence
+      write (Tinfile, "('mac',I4,'.dat')")Tpot ! initial temperature profile
+      write (Tgridfile, "('Tgrid-',I4,'-',I2,'.dat')")Tpot,zp ! output file for thermal structure
     else 
       write (hffile, "('hf-',I4,'-',I3,'.dat')")Tpot,zp ! output file for heat flow
-      write (depthfile1, "('depth-zc-',I4,'-',I3,'.dat')")Tpot,zp ! output file for subsidence
-!       write (depthfile2, "('depth-kk-',I4,'-',I3,'.dat')")Tpot,zp ! output file for K&K16 subsidence
-      write (depthfile3, "('depth-dw-',I4,'-',I3,'-',I4,'.dat')")Tpot,zp,rd ! output file for K&K16 subsidence
-      write (Tinfile, "('../mac',I4,'.dat')")Tpot ! input temperature profile
-      write (Tgridfile, "('Tgrid-',I4,'-',I3,'.dat')")Tpot,zp ! output file temp grid
-      write (rhogridfile, "('rhogrid-',I4,'-',I3,'.dat')")Tpot,zp ! output file dense grid
-!       write (compfile, "('compensation-',I4,'-',I3,'.tzd')")Tpot,zp ! output file dense grid
-!       write (initPfile, "('initial_pressure-',I4,'-',I3,'.dat')")Tpot,zp ! output file dV grid
+      write (depthfile, "('depth-',I4,'-',I3,'-',I4,'.dat')")Tpot,zp,rd ! output file for subsidence
+      write (Tinfile, "('mac',I4,'.dat')")Tpot ! initial temperature profile
+      write (Tgridfile, "('Tgrid-',I4,'-',I3,'.dat')")Tpot,zp ! output file for thermal structure
     end if
     
-    ! initialize variables
+    ! open initial temperature profile
     open(4, file = Tinfile)
-    open(11, file = initPfile)
 
-    ! read in intital T profile
+    ! read in intital temperature profile
     do i=0,nz
-      read(4,*) Tm(i)
+      read(4,*) Tm(i)			! melting parameterisation-derived temperature in deg C
     end do
-    Tm=Tm+273.
+    Tm=Tm+273.					! convert to K
     close(4)
     
     ! set initial values
-    Tbase=Tm(nz)
+    Tbase=Tm(nz)				! set basal temperature to adiabatic value at zp
     t = 0._wp					! set time = 0
-    itplot = ditplot			! set first datapoint in iterations
-    tplot = dtplot			! set first datapoint in time
-
     dtinit=(dzinit**2.)/(2.2*(6./((3100.*100.)/0.14069)))  ! set timestep
-    dt = dtinit
-    Told=Tm
-    ref_rd=2.5
-    ref_sub=0.
+    dt = dtinit ! set timestep to initial value
+    Told=Tm ! set initial temperature profile
+    ref_rd=rd/1000. ! reference ridge depth used in initial pressure profile calculation
+    ref_sub=0. ! reference subsidence at t=0
     
-    
+	! calculate initial pressure profile
+	! crust
     do i=0,zc
-      dz0(i)=dzinit
-      z0(i)=i*dz0(i)
+      dz0(i)=dzinit ! initial depth-spacing of nodes
+      z0(i)=i*dz0(i) ! initial. depth within plate
       if (i.eq.0) then
-	prdat0(i)=(1028.+(2.4*(ref_sub+ref_rd)))*g*ref_rd*dz0(i)
+		  prdat0(i)=(1028.+(2.4*(ref_sub+ref_rd)))*g*ref_rd*dz0(i) ! pressure at top of plate from water column
       else
-	prdat0(i)=prdat0(i-1)+((pdat0(i-1)*g)*dz0(i))
+		  prdat0(i)=prdat0(i-1)+((pdat0(i-1)*g)*dz0(i)) ! pressure at successive nodes 
       endif	
-      misfit(i)=brent(xmin,prdat0(i))  
-      dV0(i)=xmin
-      alphaP0(i)=dV0(i)*exp((grun+1)*((dV0(i)**(-1.))-1.))
-      rhoP0(i)=p0c*dV0(i)
-      intalphaT0(i)=(a0c*(Tm(i)-T0))+((a1c/2.)*((Tm(i)**2.)-(T0**2.)))
-      pdat0(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT0(i)))
+      misfit(i)=brent(xmin,prdat0(i)) ! determine (V0/V)T
+      dV0(i)=xmin ! set (V0/V)T
+      alphaP0(i)=dV0(i)*exp((grun+1)*((dV0(i)**(-1.))-1.)) ! calculate pressure-dependent expansivity
+      rhoP0(i)=p0c*dV0(i) ! calculate pressure dependent density
+      intalphaT0(i)=(a0c*(Tm(i)-T0))+((a1c/2.)*((Tm(i)**2.)-(T0**2.))) ! calculate thermal expansivity
+      pdat0(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT0(i))) ! calculate pressure and temperature-dependent density
     end do
+	! mantle
     do i=zc+1,nz
-      dz0(i)=dzinit
-      z0(i)=i*dz0(i)
-      prdat0(i)=prdat0(i-1)+((pdat0(i-1)*g)*dz0(i))
-      misfit(i)=brent(xmin,prdat0(i))  
-      dV0(i)=xmin
-      alphaP0(i)=dV0(i)*exp((grun+1)*((dV0(i)**(-1.))-1.))
-      rhoP0(i)=p0*dV0(i)
-      intalphaT0(i)=(a0*(Tm(i)-T0))+((a1/2.)*((Tm(i)**2.)-(T0**2.)))
-      pdat0(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT0(i)))
+      dz0(i)=dzinit ! initial depth-spacing of nodes
+      z0(i)=i*dz0(i) ! initial. depth within plate
+      prdat0(i)=prdat0(i-1)+((pdat0(i-1)*g)*dz0(i)) ! pressure at successive nodes 
+      misfit(i)=brent(xmin,prdat0(i)) ! determine (V0/V)T
+      dV0(i)=xmin ! set (V0/V)T
+      alphaP0(i)=dV0(i)*exp((grun+1)*((dV0(i)**(-1.))-1.)) ! calculate pressure-dependent expansivity
+      rhoP0(i)=p0*dV0(i) ! calculate pressure dependent density
+      intalphaT0(i)=(a0*(Tm(i)-T0))+((a1/2.)*((Tm(i)**2.)-(T0**2.))) ! calculate thermal expansivity
+      pdat0(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT0(i))) ! calculate pressure and temperature-dependent density
     end do
-    sump0=sum(pdat0)
+    sump0=sum(pdat0) ! total density
     
-    !write out initial profile data
-    do i=0,nz
-      write(11,'(4e25.16e3)') z0(i)/dzinit, prdat0(i)/1.e9, pdat0(i), Tm(i)
-    end do
-    close(11)
-
+	! open files for writing output
     open(2, file = hffile, position = 'append')  
     open(5, file = Tgridfile, position = 'append')
-    open(15, file = rhogridfile, position = 'append')
-!     open(6, file = compfile, position = 'append')
-    open(7, file = depthfile1, position = 'append')
-!     open(8, file = depthfile2, position = 'append')
-    open(9, file = depthfile3, position = 'append')
+    open(7, file = depthfile, position = 'append')
 
+	! output data for t=0
     call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)
-    it = 1
-    !dt ~ 5 ka
+    
+	! set iteration counter
+	it = 1
+
+	! enter time loop
     do while ((t < tmax) .and. (it < itmax)) ! while within timeframe and max iterations
-	  call timestep(Tm,Told,t,dt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it)				! calculation step
-	  t = t+dt
-								  ! between records
+	  call timestep(Tm,Told,t,dt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it) ! finite difference calculation step
+	  t = t+dt ! reset time
       if (t > tplot .and. hplot) then		! if profiles are required
-	  call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)			! write time, distance inc.+ height > file1
-	  tplot = tplot + dtplot				! increase tplot by dtplot
+	 	 call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)			! write time, distance inc.+ height > file1
+	 	 tplot = tplot + dtplot				! increase tplot by dtplot
       end if
       it = it + 1							! add 1 to iteration count
     end do
     
+	! close output files after writing
     close(2)
     close(5)
-    close(15)
-!     close(6)
     close(7)
-!     close(8)
-    close(9)
 
   end subroutine plate_cooling
-
+  
+! ------------------------------------------------------------------------
+	
   subroutine  output(Ta,t,sump0,alphaP0,rhoP0,pdat0,prdat0)
-    ! output routines
+    ! ------------------------------------------------------------------------
+    ! Model output subroutine
+    ! ------------------------------------------------------------------------
     use global
     implicit none
 
     real(wp), dimension(0:nz), intent(in) :: Ta,pdat0,alphaP0,rhoP0,prdat0
     real(wp), intent(in) :: t,sump0
-    real(wp), dimension(0:nz) :: intalphaT,pdat,cpdat,Ddat,krad,cum_contract,mean_contract,dz,cumz,airz
-    real(wp) :: age,kt,kti,H,sump,depth1,depth2,depth3,xmin,contraction,pb,comp,old,j,pw,rdk,compout
+    real(wp), dimension(0:nz) :: intalphaT,pdat,cpdat,Ddat,krad,cum_contract,mean_contract,dz,cumz
+    real(wp) :: age,ktot,H,sump,depth,xmin,contraction,pb,comp,j,pw,rdk
     integer  :: i,minflag
 
     ! convert time to seconds
     age=t/(10.**6.*24.*60.*60.*365.24)
 
-    minflag=0 
+    minflag=0 ! set flag for working out minimum depth at which densities match between timesteps
+   
     ! calculate isostatic depth
-    comp=0.
-    pb=0.
+    comp=0. ! set initial compensation depth to zero
+    pb=0. ! set initial density at compensation depth to zero
+	! crust
     do i=0,zc
-      intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.)))
-      pdat(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i)))
+      intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.))) ! calculate temperature dependence of expansivity
+      pdat(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i))) ! calculate pressure and temperature-dependent density
       if (i.eq.0) then
-	cumz(i)=0.
-	dz(i)=0.
+		cumz(i)=0. ! set cumulative depth to zero
+		dz(i)=0. ! set initial depth-spacing of nodes to zero
       else
-	dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit
-      	cumz(i)=cumz(i-1)+dz(i)
+		dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit ! update depth spacing to account for vertical contraction (assumes vertical contraction so pressure at base of each cell is conserved)
+      	cumz(i)=cumz(i-1)+dz(i) ! update cumulative depth
       endif
+	  ! if at minimum depth where densities from successive timesteps match to nearest integer, define compensation depth and corresponding density
       if (i.gt.0.and.(int(pdat0(i)*roundtol)/roundtol).eq.(int(pdat(i)*roundtol)/roundtol).and.t.gt.0.and.minflag.eq.0) then
-	comp=cumz(i)
-	pb=pdat(i)
-	minflag=minflag+1
+		  comp=cumz(i) ! set compensation depth
+		  pb=pdat(i) ! set density at compensation depth
+		  minflag=minflag+1 ! reset minimum depth flag
       endif
     end do
+	! mantle
     do i=zc+1,nz
-      intalphaT(i)=(a0*(Ta(i)-T0))+((a1/2.)*((Ta(i)**2.)-(T0**2.)))
-      pdat(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i)))
-      dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit
-      cumz(i)=cumz(i-1)+dz(i)
+      intalphaT(i)=(a0*(Ta(i)-T0))+((a1/2.)*((Ta(i)**2.)-(T0**2.))) ! calculate temperature dependence of expansivity
+      pdat(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i))) ! calculate pressure and temperature-dependent density
+      dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit ! update depth spacing to account for vertical contraction (assumes vertical contraction so pressure at base of each cell is conserved)
+      cumz(i)=cumz(i-1)+dz(i) ! update cumulative depth
+	  ! if at minimum depth where densities from successive timesteps match to nearest integer, define compensation depth and corresponding density
       if ((int(pdat0(i)*roundtol)/roundtol).eq.(int(pdat(i)*roundtol)/roundtol).and.t.gt.0.and.minflag.eq.0) then
-	comp=cumz(i)
-	pb=pdat(i)
-	minflag=minflag+1
+		  comp=cumz(i) ! set compensation depth
+		  pb=pdat(i) ! set density at compensation depth
+		  minflag=minflag+1 ! reset minimum depth flag
       endif
     end do
 
-    sump=sum(pdat)
-    if (pb.eq.0.and.comp.eq.0) then
-      pb=pdat(nz)
-      compout=dzinit*zp
-    else
-      compout=comp+((zp*dzinit)*(1-(sump0/sump)))
-    endif
-    airz=cumz+(zp*dzinit*(1-(sump0/sump)))
-
-!     write(6,'(3e25.16e3)') age, compout, pb
-
-   ! work out change in depth in case that compensation depth fixed at base of plate (c.f. Korenaga & Korenaga 2016)
-    contraction=(1.-(sump0/sump))*zp*dzinit
-    depth1=(pdat(nz)/(pdat(nz)-pw0))*contraction
-    write(7,'(2e25.16e3)') age, depth1
+	! determine total contraction of column
+    sump=sum(pdat) ! cumulative density
+    contraction=(1.-(sump0/sump))*zp*dzinit ! total contraction (assumes vertical contraction so pressure at base of each cell is conserved)
+ 
+    ! determine subsidence as a function of age using density at compensation depth and pressure-dependence of water density
+    rdk=rd/1000. ! ridge depth in km
+    depth=rtbis(pb,(contraction/dzinit),pw,rdk)*dzinit !iterates to find subsidence as water density is a function of depth 
+	write(7,'(2e25.16e3)') age, depth
     
-   ! work out change in depth in case that compensation depth varies with time (Korenaga & Korenaga 2016)
-!     depth2=(pb/(pb-pw0))*contraction
-!     write(8,'(2e25.16e3)') age, depth2
-    
-   ! work out change in depth in case that compensation depth varies with time (Korenaga & Korenaga 2016)
-    rdk=rd/1000.
-    depth3=rtbis(pb,(contraction/dzinit),pw,rdk)*dzinit
-    write(9,'(3e25.16e3)') age, depth3, (rd*dzinit)/dzinit
-    
-!     work out cumulative contraction from top to bottom
+	! determine temperature evolution as a function of age and depth within the plate
     cum_contract(0)=1.
     j=1.
     do i=0,nz
-      cum_contract(i)=((pdat0(i)/pdat(i))+cum_contract(i-1))
-      mean_contract(i)=cum_contract(i)/j
-      write(5,'(4e25.16e3)') age, i*mean_contract(i), (i*mean_contract(i))+(depth3/dzinit), Ta(i)
+      cum_contract(i)=((pdat0(i)/pdat(i))+cum_contract(i-1)) ! cumulative contraction (assumes vertical contraction so pressure at base of each cell is conserved)
+      mean_contract(i)=cum_contract(i)/j ! mean contraction
+      write(5,'(4e25.16e3)') age, i*mean_contract(i), (i*mean_contract(i))+(depth/dzinit), Ta(i)
       j=j+1.
-    end do
-    
-    !     work out cumulative contraction from top to bottom
-    cum_contract(0)=1.
-    j=1.
-    do i=0,nz
-      cum_contract(i)=((pdat0(i)/pdat(i))+cum_contract(i-1))
-      mean_contract(i)=cum_contract(i)/j
-      j=j+1.
-    end do
-    do i=0,nz
-       write(15,'(8e25.16e3)') age, ((i*mean_contract(i))+(zp-(nz*mean_contract(nz)))), &
- 	((i*mean_contract(i))+(zp-(nz*mean_contract(nz)))+(depth3/dzinit)), (pdat(i)-pdat0(i)), dz(i), &
-	(i*mean_contract(i)), (i*mean_contract(i))+(depth3/dzinit), pdat(i)
     end do
 
-    ! calculate heat flow at surface
+    ! determine heat flow as a function of age
     cpdat(0)=((0.15*((k0fofa)+(k1fofa*(Ta(0)**(-1./2.)))+(k3fofa*(Ta(0)**(-3.)))))+&
         (0.2*(c0_cpx+(c1_cpx*Ta(0))+(c2_cpx*(Ta(0)**(-2)))+(c3_cpx*(Ta(0)**(-1./2.)))+&
             (c4_cpx*(Ta(0)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(0))+(c2_plag*(Ta(0)**(-2)))+&
-                (c3_plag*(Ta(0)**(-1./2.)))+(c4_plag*(Ta(0)**2.)))))
-    Ddat(0)=(a_crust+(b_crust*exp(-(Ta(0)-T0)/c_crust))+(d_crust*exp(-(Ta(0)-T0)/e_crust)))*1e-6
-    krad(0)=Ar*exp(-(((Ta(0)-Tar)**(2.))/(2*(xa**(2.)))))+Br*exp(-(((Ta(0)-Tbr)**(2.))/(2*(xb**(2.)))))
-    kt=(pdat(0)*Ddat(0)*cpdat(0)*exp(dkP*(prdat0(0)/1.e+9)))+krad(0)
-    kti=(((pdat(1)*Ddat(1)*cpdat(1)*exp(dkP*(prdat0(1)/1.e+9)))+krad(1))+kt)/2
-    H=(kt*(Ta(1)-Ta(0)))/dz(1)
+                (c3_plag*(Ta(0)**(-1./2.)))+(c4_plag*(Ta(0)**2.))))) ! heat capacity 
+    Ddat(0)=(a_crust+(b_crust*exp(-(Ta(0)-T0)/c_crust))+(d_crust*exp(-(Ta(0)-T0)/e_crust)))*1e-6 ! diffusivity
+    krad(0)=Ar*exp(-(((Ta(0)-Tar)**(2.))/(2*(xa**(2.)))))+Br*exp(-(((Ta(0)-Tbr)**(2.))/(2*(xb**(2.))))) ! radiative conductivity
+    ktot=(pdat(0)*Ddat(0)*cpdat(0)*exp(dkP*(prdat0(0)/1.e+9)))+krad(0) ! total conductivity
+    H=(ktot*(Ta(1)-Ta(0)))/dz(1) ! heat flow
     write(2,'(2e25.16e3)') age, H
 
   end subroutine output
-  ! ------------------------------------------------------------------------
+  
+! ------------------------------------------------------------------------
+  
   subroutine timestep(Tt1,Tt3,t,twodt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it)
 
+	! predictor-corrector routine (n is timestep, i is position)
+	
     use global
     implicit none
     real(wp), dimension(0:nz), intent(inout) :: Tt1, Tt3, alphaP0,rhoP0,prdat0,pdat0
     real(wp), intent(in) :: t, twodt, Tbase
     integer, intent(in) :: it
-    real(wp), dimension(0:nz) :: Tt2, b, al, ad, au, cz, czm, cora,corb, p, cp, dz
-    integer :: tflag
-    real(wp) :: dtc
-	! Predictor corrector routine (n is timestep, i is position)
+    real(wp), dimension(0:nz) :: Tt2, cz, czm, cora, corb, p, cp, dz
+
 	! predicts the T at n+1 using knowledge of T at n
-	! corrects estimate of k(n+1/2) using average of T(n+1) and T(n)
+	! then corrects estimate of k(n+1/2) using average of T(n+1) and T(n) and recalculates T at n+1
 	! [A][x] = [b], where matrix A relates to prefactors of T(n+1,:), and b to T(n,:)
-	! not worth doing more than once
+	! This routine is not worth doing more than once per timestep
 
-	! Tt3 = n-1 timestep, Tt1 = n timestep (present), Tt2 = n+1 timestep (initial guess future)
-	! The n+1 timestep final result becomes Tt1 (second variable of the set_eqn call is the output) 
-	
     !predictor step	
-    call correction(Tt3,Tt1,Tt1,cora,alphaP0,rhoP0)
-    call set_var(Tt1,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
-    call set_eqn(Tt1,Tt2,cz,czm,p,cp,cora,twodt,Tbase,dz)
+	! Tt3 = n-1 timestep, Tt1 = n timestep (present), Tt2 = n+1 timestep (initial guess future)	
+    call correction(Tt3,Tt1,Tt1,cora,alphaP0,rhoP0) ! optional dpCp/dt correction term 
+    call set_var(Tt1,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz) ! set variables
+    call set_eqn(Tt1,Tt2,cz,czm,p,cp,cora,twodt,Tbase,dz) ! solve [A][x] = [b]
 
+	! set Tt3 to Tt1 so it n timestep becomes the n-1 timestep next time the routine is called
     Tt3=Tt1
 
     ! corrector step
-    call correction(Tt1,Tt2,Tt1,corb,alphaP0,rhoP0)
-!     if (any(corb.gt.0.01)) then
-!         print *, t/(60.*60.*24.*365.25*10.**6.),it
-!     endif
-    call set_var((Tt1+Tt2)/2.,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
-    call set_eqn(Tt1,Tt1,cz,czm,p,cp,corb,twodt,Tbase,dz)
+	! at the end of this step The n+1 timestep result becomes Tt1 (second variable of the set_eqn call is the output) 
+    call correction(Tt1,Tt2,Tt1,corb,alphaP0,rhoP0) ! optional dpCp/dt correction term 
+    call set_var((Tt1+Tt2)/2.,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz) ! set variables
+    call set_eqn(Tt1,Tt1,cz,czm,p,cp,corb,twodt,Tbase,dz) ! solve [A][x] = [b]
 
 
   end subroutine timestep
-  ! ------------------------------------------------------------------------
+  
+! ------------------------------------------------------------------------
+  
 subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
-
+	
+	! finds  optional dpCp/dt correction term used required in McKenzie et al. 2005 eqn. 3
 
     use global
     implicit none
     real(wp), dimension(0:nz), intent(in)  ::  T1,T2,T3,alphaP0,rhoP0
     real(wp), dimension(0:nz), intent(out)  :: cora
-    real(wp), dimension(0:nz) :: dV1,alphaP1,rhoP1,intalphaT1,p1,cp1, p2,cp2, p3,cp3
-    real(wp), dimension(0:nz) :: dV2,alphaP2,rhoP2,intalphaT2,dV3,alphaP3,rhoP3,intalphaT3
-    real(wp) :: xmin
+    real(wp), dimension(0:nz) :: p1,cp1,p2,cp2,p3,cp3
+    real(wp), dimension(0:nz) :: intalphaT1,intalphaT2,intalphaT3
     integer  ::  i
-
-    ! finds correction required by right hand term of McKenzie et al. 2005 eqn. 3
+	
     do i=0,zc
       intalphaT1(i)=(a0c*(T1(i)-T0))+((a1c/2.)*((T1(i)**2.)-(T0**2.)))
       p1(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT1(i)))
@@ -470,20 +456,21 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
     cora=-((T2+T3)*(p2*cp2-p1*cp1))/(p3*cp3+p2*cp2)
 
 end subroutine correction
-  ! ------------------------------------------------------------------------
+
+! ------------------------------------------------------------------------
+  
 subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
-!    calculates the diffusion/advection cz,czm from T
-!    iw=0 -> centred; iw=1 -> full upwind; iw=2 -> Il'in upwind
-!    advection term commented out
+	
+	! calculates the values of key variables
+	 
     use global
     implicit none
     real(wp), dimension(0:nz), intent(in)  ::  Ta, alphaP0, rhoP0,prdat0,pdat0
     real(wp), dimension(0:nz), intent(out)  ::  cz,czm, p, cp, dz
-    real(wp), dimension(0:nz) :: ki, vi, qi, ai, Di, q2, ka, krad
-    real(wp), dimension(0:nz) :: dV, alphaP, rhoP, intalphaT
+    real(wp), dimension(0:nz) :: ki, Di, ka, krad
+    real(wp), dimension(0:nz) :: dV, intalphaT
     real(wp), dimension(0:nz) :: Dc
-    real(wp)  ::  beta, xmin
-    integer  ::  i
+    integer  :: i
     
     do i=0,zc
       intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.)))
@@ -527,26 +514,28 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
 
   ! ------------------------------------------------------------------------
   subroutine set_eqn(Ta,Tn,cz,czm,p,cp,cor,dtb,Tbase,dz)
+	  
     !    sets up A matrix and b vector to solve Ax=b
     !    advances T(n) to h(n+dt)
     !    calls tridiagonal solver
+	
     use global
     implicit none
     real(wp), dimension(0:nz), intent(in)  ::  Ta, cz,czm,cor,p,cp,dz
     real(wp), dimension(0:nz), intent(out)  ::  Tn
     real(wp), dimension(0:nz) :: ab,al,ad,au,x
-    real(wp), dimension(0:nz-1) :: beta,dzi,cpi,pi
+    real(wp), dimension(0:nz-1) :: beta,dzi
     real(wp), intent(in) :: dtb,Tbase
     integer ::  i
  
-   !include contraction of dz  
+    ! include contraction of dz  
     dzi(0:nz-1)=(dz(1:nz)+dz(0:nz-1))/2.
-    !dzi(0) = avg of 0 and 1 points 
+    ! dzi(0) = avg of 0 and 1 points 
     beta(0:nz-1)=dtb/(2.*p(1:nz)*cp(1:nz)*dzi(0:nz-1))
     
     ab(1:nz-1)=Ta(1:nz-1) + beta(0:nz-2)*(cz(1:nz-1)*Ta(2:nz)-(czm(1:nz-1)+cz(0:nz-2))*Ta(1:nz-1)+czm(0:nz-2)&
     *Ta(0:nz-2))+cor(1:nz-1)
-    ab(0)=Ta(0) !ha(0) + beta(0)*(cx(1)*ha(1)-cxm(1)*ha(0)) + dtb/dz
+    ab(0)=Ta(0) ! ha(0) + beta(0)*(cx(1)*ha(1)-cxm(1)*ha(0)) + dtb/dz
     ab(nz)=Tbase
     
     al(1:nz-1)=-czm(0:nz-2)*beta(0:nz-2)
@@ -554,15 +543,14 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     au(1:nz-1)=-cz(1:nz-1)*beta(0:nz-2)
 
     al(0)=0._wp
-    ad(0)=1d0 !+czm(0)*beta(0)
-    au(0)=0._wp !-cz(0)*beta(0)
+    ad(0)=1d0 ! +czm(0)*beta(0)
+    au(0)=0._wp ! -cz(0)*beta(0)
 
 
-    al(nz)=0.!-cz(nz)*beta(nz)
-    ad(nz)=1d0 !+czm(nz)*beta(nz)
+    al(nz)=0. ! -cz(nz)*beta(nz)
+    ad(nz)=1d0 ! +czm(nz)*beta(nz)
     au(nz)=0.
 
-    !       --- add  f(i,j,t+dt/2)*dt  if necessary
     Tn(:)=0.
     call gtri(al,ad,au,ab,x,0,nz)
     do i=0,nz
@@ -576,28 +564,11 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     return
   end subroutine set_eqn
  
-
-  ! ------------------------------------------------------------------------
-  function err(Ta,Tb)
-
-    implicit none    
-    real(wp), dimension(0:nz), intent(in) :: Ta, Tb
-    real(wp) :: err
-    integer :: i
-	
-	! sum error^2 on each inc. (square to remove effect of -ve, sqrt later)
-    ! nzot used in this version of code (adaptive timestep not used)
-	
-    err = 0._wp
-    do i = 0,nz
-       err = err + (Ta(i)-Tb(i))**2
-    end do
-
-  end function err
 ! ------------------------------------------------------------------------
+ 
   subroutine gtri(l,d,u,b,x,n1,n2)
-    ! Solves tridiagonal system LnXn-1 + DnXn + UnXn+1=Bn (1<=n<=nz)
-    ! WB may equal B if it is not necessary to preserve B
+	  
+    ! solves tridiagonal system LnXn-1 + DnXn + UnXn+1=Bn (1<=n<=nz)
 
     implicit none
     integer, intent(in) :: n1, n2    
@@ -625,11 +596,13 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     end do
 
   end subroutine gtri
-  ! -------------------------------------------------
   
 ! -------------------------------------------------
+  
   function brent(xmin,xin)
-    
+	  
+	! Brent minimisation algorithm to find (V0/V)T 
+	
     use global
     implicit none    
     real(wp) :: brent,xin,xmin
@@ -641,7 +614,7 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     real(wp), parameter :: CX=2.0
     real(wp), parameter :: tol=1.48e-8
     
-!     Given a function f, and given a bracketing triplet of abscissas AX, bx, cx (such that bx is
+!     given a function f, and given a bracketing triplet of abscissas AX, bx, cx (such that bx is
 !     between AX and cx, and f(bx) is less than both f(AX) and f(CX)), this routine isolates
 !     the minimum to a fractional precision of about tol using Brent’s method. The abscissa of
 !     the minimum is returned as xmin, and the minimum function value is returned as brent,
@@ -728,22 +701,24 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     brent=fx
     return
     end function brent
-! -------------------------------------------------
 
 ! -------------------------------------------------
+
   function rtbis(pb,cont,pw,rd)
-    
+	  
+	! root bisection to find seafloor subsidence
+	
     use global
     implicit none    
-    real(wp) :: rtbis,xmin,pb,cont,fmid,f,xmid,dx,pw,rd
+    real(wp) :: rtbis,pb,cont,fmid,f,xmid,dx,pw,rd
     real(wp), parameter :: AX=-0.1
     real(wp), parameter :: BX=10.0
     real(wp), parameter :: xacc=1.48e-8
     integer, parameter :: jmax=100
     integer :: j
     
-!     Using bisection, find the root of a function known to lie between AX and BX.
-!     The root, returend as rtbis, willl be refuined until its accuracy is +/-xacc
+	! Using bisection, find the root of a function known to lie between AX and BX.
+	! The root, returned as rtbis, will be refined until its accuracy is +/-xacc
 
 
     fmid=((pb/(pb-(1028.+(2.4*(BX+rd)))))*cont)-BX
