@@ -24,11 +24,11 @@ program RHCW18
   integer,  parameter :: zc     = 7            ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
   real(wp), parameter :: T0=273. ! reference temperature
   real(wp), parameter :: roundtol=1. ! rounding tolerance (K)
-  integer,  parameter :: ditplot = 10000			! no. iterations between outputs
-  real(wp), parameter :: dtplot = 3.1556736e12_wp	! time between outputs
-  logical,  parameter :: hplot = .true.				! turn on write h.txt
+  integer,  parameter :: ditplot = 10000            ! no. iterations between outputs
+  real(wp), parameter :: dtplot = 3.1556736e12_wp    ! time between outputs
+  logical,  parameter :: hplot = .true.                ! turn on write h.txt
 
-	
+    
   ! reference densities
   real(wp), parameter :: p0=3330. ! mantle
   real(wp), parameter :: p0c=2950. ! crust
@@ -106,7 +106,7 @@ program RHCW18
   real(wp), parameter ::  a_plag =0.36
   real(wp), parameter ::  b_plag =0.4
   real(wp), parameter ::  c_plag =300.
-  !	crust
+  !    crust
   real(wp), parameter ::  a_crust =0.414
   real(wp), parameter ::  b_crust =0.22
   real(wp), parameter ::  c_crust =455.
@@ -142,15 +142,15 @@ program RHCW18
       if(cptArg==1)then
         read(name,*)Tpot ! read potential temperature in deg C
       else if(cptArg==2)then
-  	read(name,*)zp ! read plate thickness in km
+      read(name,*)zp ! read plate thickness in km
       else if(cptArg==3)then
-  	read(name,*)rd ! read ridge depth in m
+      read(name,*)rd ! read ridge depth in m
       end if
     end do
   else
-	! Throw error if insufficient arguments.
+    ! Throw error if insufficient arguments.
     write(*,*)"Not enough input parameters given, format is ./cool Tpot zp rd"
-	stop
+    stop
   end if 
   
   nz=zp ! set plate thickness to number of data points
@@ -176,13 +176,13 @@ contains
     real(wp), dimension(0:nz)  :: Tm, Told, pdat0, prdat0, dz0
     real(wp), dimension(0:nz)  :: dV0, alphaP0, rhoP0, intalphaT0, z0, misfit
     
-	! initialise filenames
+    ! initialise filenames
     character(30)  ::  hffile
     character(30)  ::  Tinfile
     character(30)  ::  Tgridfile
     character(30)  ::  depthfile
     
-	! set file names
+    ! set file names
     if (nz<100) then
       write (hffile, "('hf-',I4,'-',I2,'.dat')")Tpot,zp ! output file for heat flow
       write (depthfile, "('depth-',I4,'-',I2,'-',I4,'.dat')")Tpot,zp,rd ! output file for subsidence
@@ -200,30 +200,30 @@ contains
 
     ! read in intital temperature profile
     do i=0,nz
-      read(4,*) Tm(i)			! melting parameterisation-derived temperature in deg C
+      read(4,*) Tm(i)            ! melting parameterisation-derived temperature in deg C
     end do
-    Tm=Tm+273.					! convert to K
+    Tm=Tm+273.                    ! convert to K
     close(4)
     
     ! set initial values
-    Tbase=Tm(nz)				! set basal temperature to adiabatic value at zp
-    t = 0._wp					! set time = 0
+    Tbase=Tm(nz)                ! set basal temperature to adiabatic value at zp
+    t = 0._wp                    ! set time = 0
     dtinit=(dzinit**2.)/(2.2*(6./((3100.*100.)/0.14069)))  ! set timestep
     dt = dtinit ! set timestep to initial value
     Told=Tm ! set initial temperature profile
     ref_rd=rd/1000. ! reference ridge depth used in initial pressure profile calculation
     ref_sub=0. ! reference subsidence at t=0
     
-	! calculate initial pressure profile
-	! crust
+    ! calculate initial pressure profile
+    ! crust
     do i=0,zc
       dz0(i)=dzinit ! initial depth-spacing of nodes
       z0(i)=i*dz0(i) ! initial. depth within plate
       if (i.eq.0) then
-		  prdat0(i)=(1028.+(2.4*(ref_sub+ref_rd)))*g*ref_rd*dz0(i) ! pressure at top of plate from water column
+          prdat0(i)=(1028.+(2.4*(ref_sub+ref_rd)))*g*ref_rd*dz0(i) ! pressure at top of plate from water column
       else
-		  prdat0(i)=prdat0(i-1)+((pdat0(i-1)*g)*dz0(i)) ! pressure at successive nodes 
-      endif	
+          prdat0(i)=prdat0(i-1)+((pdat0(i-1)*g)*dz0(i)) ! pressure at successive nodes 
+      endif    
       misfit(i)=brent(xmin,prdat0(i)) ! determine (V0/V)T
       dV0(i)=xmin ! set (V0/V)T
       alphaP0(i)=dV0(i)*exp((grun+1)*((dV0(i)**(-1.))-1.)) ! calculate pressure-dependent expansivity
@@ -231,7 +231,7 @@ contains
       intalphaT0(i)=(a0c*(Tm(i)-T0))+((a1c/2.)*((Tm(i)**2.)-(T0**2.))) ! calculate thermal expansivity
       pdat0(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT0(i))) ! calculate pressure and temperature-dependent density
     end do
-	! mantle
+    ! mantle
     do i=zc+1,nz
       dz0(i)=dzinit ! initial depth-spacing of nodes
       z0(i)=i*dz0(i) ! initial. depth within plate
@@ -245,29 +245,29 @@ contains
     end do
     sump0=sum(pdat0) ! total density
     
-	! open files for writing output
+    ! open files for writing output
     open(2, file = hffile, position = 'append')  
     open(5, file = Tgridfile, position = 'append')
     open(7, file = depthfile, position = 'append')
 
-	! output data for t=0
+    ! output data for t=0
     call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)
     
-	! set iteration counter
-	it = 1
+    ! set iteration counter
+    it = 1
 
-	! enter time loop
+    ! enter time loop
     do while ((t < tmax) .and. (it < itmax)) ! while within timeframe and max iterations
-	  call timestep(Tm,Told,t,dt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it) ! finite difference calculation step
-	  t = t+dt ! reset time
-      if (t > tplot .and. hplot) then		! if profiles are required
-	 	 call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)			! write time, distance inc.+ height > file1
-	 	 tplot = tplot + dtplot				! increase tplot by dtplot
+      call timestep(Tm,Told,t,dt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it) ! finite difference calculation step
+      t = t+dt ! reset time
+      if (t > tplot .and. hplot) then        ! if profiles are required
+          call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)            ! write time, distance inc.+ height > file1
+          tplot = tplot + dtplot                ! increase tplot by dtplot
       end if
-      it = it + 1							! add 1 to iteration count
+      it = it + 1                            ! add 1 to iteration count
     end do
     
-	! close output files after writing
+    ! close output files after writing
     close(2)
     close(5)
     close(7)
@@ -275,7 +275,7 @@ contains
   end subroutine plate_cooling
   
 ! ------------------------------------------------------------------------
-	
+    
   subroutine  output(Ta,t,sump0,alphaP0,rhoP0,pdat0,prdat0)
     ! ------------------------------------------------------------------------
     ! Model output subroutine
@@ -297,48 +297,48 @@ contains
     ! calculate isostatic depth
     comp=0. ! set initial compensation depth to zero
     pb=0. ! set initial density at compensation depth to zero
-	! crust
+    ! crust
     do i=0,zc
       intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.))) ! calculate temperature dependence of expansivity
       pdat(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i))) ! calculate pressure and temperature-dependent density
       if (i.eq.0) then
-		cumz(i)=0. ! set cumulative depth to zero
-		dz(i)=0. ! set initial depth-spacing of nodes to zero
+        cumz(i)=0. ! set cumulative depth to zero
+        dz(i)=0. ! set initial depth-spacing of nodes to zero
       else
-		dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit ! update depth spacing to account for vertical contraction (assumes vertical contraction so pressure at base of each cell is conserved)
-      	cumz(i)=cumz(i-1)+dz(i) ! update cumulative depth
+        dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit ! update depth spacing to account for vertical contraction (assumes vertical contraction so pressure at base of each cell is conserved)
+          cumz(i)=cumz(i-1)+dz(i) ! update cumulative depth
       endif
-	  ! if at minimum depth where densities from successive timesteps match to nearest integer, define compensation depth and corresponding density
+      ! if at minimum depth where densities from successive timesteps match to nearest integer, define compensation depth and corresponding density
       if (i.gt.0.and.(int(pdat0(i)*roundtol)/roundtol).eq.(int(pdat(i)*roundtol)/roundtol).and.t.gt.0.and.minflag.eq.0) then
-		  comp=cumz(i) ! set compensation depth
-		  pb=pdat(i) ! set density at compensation depth
-		  minflag=minflag+1 ! reset minimum depth flag
+          comp=cumz(i) ! set compensation depth
+          pb=pdat(i) ! set density at compensation depth
+          minflag=minflag+1 ! reset minimum depth flag
       endif
     end do
-	! mantle
+    ! mantle
     do i=zc+1,nz
       intalphaT(i)=(a0*(Ta(i)-T0))+((a1/2.)*((Ta(i)**2.)-(T0**2.))) ! calculate temperature dependence of expansivity
       pdat(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i))) ! calculate pressure and temperature-dependent density
       dz(i)=(((pdat0(i-1)/pdat(i-1))+(pdat0(i)/pdat(i)))/2.)*dzinit ! update depth spacing to account for vertical contraction (assumes vertical contraction so pressure at base of each cell is conserved)
       cumz(i)=cumz(i-1)+dz(i) ! update cumulative depth
-	  ! if at minimum depth where densities from successive timesteps match to nearest integer, define compensation depth and corresponding density
+      ! if at minimum depth where densities from successive timesteps match to nearest integer, define compensation depth and corresponding density
       if ((int(pdat0(i)*roundtol)/roundtol).eq.(int(pdat(i)*roundtol)/roundtol).and.t.gt.0.and.minflag.eq.0) then
-		  comp=cumz(i) ! set compensation depth
-		  pb=pdat(i) ! set density at compensation depth
-		  minflag=minflag+1 ! reset minimum depth flag
+          comp=cumz(i) ! set compensation depth
+          pb=pdat(i) ! set density at compensation depth
+          minflag=minflag+1 ! reset minimum depth flag
       endif
     end do
 
-	! determine total contraction of column
+    ! determine total contraction of column
     sump=sum(pdat) ! cumulative density
     contraction=(1.-(sump0/sump))*zp*dzinit ! total contraction (assumes vertical contraction so pressure at base of each cell is conserved)
  
     ! determine subsidence as a function of age using density at compensation depth and pressure-dependence of water density
     rdk=rd/1000. ! ridge depth in km
     depth=rtbis(pb,(contraction/dzinit),pw,rdk)*dzinit !iterates to find subsidence as water density is a function of depth 
-	write(7,'(2e25.16e3)') age, depth
+    write(7,'(2e25.16e3)') age, depth
     
-	! determine temperature evolution as a function of age and depth within the plate
+    ! determine temperature evolution as a function of age and depth within the plate
     cum_contract(0)=1.
     j=1.
     do i=0,nz
@@ -365,8 +365,8 @@ contains
   
   subroutine timestep(Tt1,Tt3,t,twodt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it)
 
-	! predictor-corrector routine (n is timestep, i is position)
-	
+    ! predictor-corrector routine (n is timestep, i is position)
+    
     use global
     implicit none
     real(wp), dimension(0:nz), intent(inout) :: Tt1, Tt3, alphaP0,rhoP0,prdat0,pdat0
@@ -374,22 +374,22 @@ contains
     integer, intent(in) :: it
     real(wp), dimension(0:nz) :: Tt2, cz, czm, cora, corb, p, cp, dz
 
-	! predicts the T at n+1 using knowledge of T at n
-	! then corrects estimate of k(n+1/2) using average of T(n+1) and T(n) and recalculates T at n+1
-	! [A][x] = [b], where matrix A relates to prefactors of T(n+1,:), and b to T(n,:)
-	! This routine is not worth doing more than once per timestep
+    ! predicts the T at n+1 using knowledge of T at n
+    ! then corrects estimate of k(n+1/2) using average of T(n+1) and T(n) and recalculates T at n+1
+    ! [A][x] = [b], where matrix A relates to prefactors of T(n+1,:), and b to T(n,:)
+    ! This routine is not worth doing more than once per timestep
 
-    !predictor step	
-	! Tt3 = n-1 timestep, Tt1 = n timestep (present), Tt2 = n+1 timestep (initial guess future)	
+    ! predictor step    
+    ! Tt3 = n-1 timestep, Tt1 = n timestep (present), Tt2 = n+1 timestep (initial guess future)    
     call correction(Tt3,Tt1,Tt1,cora,alphaP0,rhoP0) ! optional dpCp/dt correction term 
     call set_var(Tt1,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz) ! set variables
     call set_eqn(Tt1,Tt2,cz,czm,p,cp,cora,twodt,Tbase,dz) ! solve [A][x] = [b]
 
-	! set Tt3 to Tt1 so it n timestep becomes the n-1 timestep next time the routine is called
+    ! set Tt3 to Tt1 so it n timestep becomes the n-1 timestep next time the routine is called
     Tt3=Tt1
 
     ! corrector step
-	! at the end of this step The n+1 timestep result becomes Tt1 (second variable of the set_eqn call is the output) 
+    ! at the end of this step The n+1 timestep result becomes Tt1 (second variable of the set_eqn call is the output) 
     call correction(Tt1,Tt2,Tt1,corb,alphaP0,rhoP0) ! optional dpCp/dt correction term 
     call set_var((Tt1+Tt2)/2.,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz) ! set variables
     call set_eqn(Tt1,Tt1,cz,czm,p,cp,corb,twodt,Tbase,dz) ! solve [A][x] = [b]
@@ -400,8 +400,8 @@ contains
 ! ------------------------------------------------------------------------
   
 subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
-	
-	! finds  optional dpCp/dt correction term used required in McKenzie et al. 2005 eqn. 3
+    
+    ! finds  optional dpCp/dt correction term used required in McKenzie et al. 2005 eqn. 3
 
     use global
     implicit none
@@ -410,14 +410,14 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
     real(wp), dimension(0:nz) :: p1,cp1,p2,cp2,p3,cp3
     real(wp), dimension(0:nz) :: intalphaT1,intalphaT2,intalphaT3
     integer  ::  i
-	
+    
     do i=0,zc
       intalphaT1(i)=(a0c*(T1(i)-T0))+((a1c/2.)*((T1(i)**2.)-(T0**2.)))
       p1(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT1(i)))
       cp1(i)=((0.15*((k0fofa)+(k1fofa*(T1(i)**(-1./2.)))+(k3fofa*(T1(i)**(-3.)))))+&
       (0.2*(c0_cpx+(c1_cpx*T1(i))+(c2_cpx*(T1(i)**(-2.)))+(c3_cpx*(T1(i)**(-1./2.)))+&
-	  (c4_cpx*(T1(i)**2.))))+(0.65*(c0_plag+(c1_plag*T1(i))+(c2_plag*(T1(i)**(-2.)))+&
-	      (c3_plag*(T1(i)**(-1./2.)))+(c4_plag*(T1(i)**2.)))))
+      (c4_cpx*(T1(i)**2.))))+(0.65*(c0_plag+(c1_plag*T1(i))+(c2_plag*(T1(i)**(-2.)))+&
+          (c3_plag*(T1(i)**(-1./2.)))+(c4_plag*(T1(i)**2.)))))
     end do
     do i=zc+1,nz
       intalphaT1(i)=(a0*(T1(i)-T0))+((a1/2.)*((T1(i)**2.)-(T0**2.)))
@@ -430,8 +430,8 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
       p2(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT2(i)))
       cp2(i)=((0.15*((k0fofa)+(k1fofa*(T2(i)**(-1./2.)))+(k3fofa*(T2(i)**(-3.)))))+&
       (0.2*(c0_cpx+(c1_cpx*T2(i))+(c2_cpx*(T2(i)**(-2.)))+(c3_cpx*(T2(i)**(-1./2.)))+&
-	  (c4_cpx*(T2(i)**2.))))+(0.65*(c0_plag+(c1_plag*T2(i))+(c2_plag*(T2(i)**(-2.)))+&
-	      (c3_plag*(T2(i)**(-1./2.)))+(c4_plag*(T2(i)**2.)))))
+      (c4_cpx*(T2(i)**2.))))+(0.65*(c0_plag+(c1_plag*T2(i))+(c2_plag*(T2(i)**(-2.)))+&
+          (c3_plag*(T2(i)**(-1./2.)))+(c4_plag*(T2(i)**2.)))))
     end do
     do i=zc+1,nz
       intalphaT2(i)=(a0*(T2(i)-T0))+((a1/2.)*((T2(i)**2.)-(T0**2.)))
@@ -444,8 +444,8 @@ subroutine correction(T1,T2,T3,cora,alphaP0,rhoP0)
       p3(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT3(i)))
       cp3(i)=((0.15*((k0fofa)+(k1fofa*(T3(i)**(-1./2.)))+(k3fofa*(T3(i)**(-3.)))))+&
       (0.2*(c0_cpx+(c1_cpx*T3(i))+(c2_cpx*(T3(i)**(-2.)))+(c3_cpx*(T3(i)**(-1./2.)))+&
-	  (c4_cpx*(T3(i)**2.))))+(0.65*(c0_plag+(c1_plag*T3(i))+(c2_plag*(T3(i)**(-2.)))+&
-	      (c3_plag*(T3(i)**(-1./2.)))+(c4_plag*(T3(i)**2.)))))
+      (c4_cpx*(T3(i)**2.))))+(0.65*(c0_plag+(c1_plag*T3(i))+(c2_plag*(T3(i)**(-2.)))+&
+          (c3_plag*(T3(i)**(-1./2.)))+(c4_plag*(T3(i)**2.)))))
     end do
     do i=zc+1,nz
       intalphaT3(i)=(a0*(T3(i)-T0))+((a1/2.)*((T3(i)**2.)-(T0**2.)))
@@ -460,9 +460,9 @@ end subroutine correction
 ! ------------------------------------------------------------------------
   
 subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
-	
-	! calculates the values of key variables
-	 
+    
+    ! calculates the values of key variables
+     
     use global
     implicit none
     real(wp), dimension(0:nz), intent(in)  ::  Ta, alphaP0, rhoP0,prdat0,pdat0
@@ -472,20 +472,20 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     real(wp), dimension(0:nz) :: Dc
     integer  :: i
     
-	! N.B. changes in pressure profile due to extra water filling in accommodation space created by subsidence 
-	! are ignored here --> initial pressure profile is maintained when calculating pressure-dependent density 
-	! and conductivity changes.
-	! This avoids the need to iterate the subsidence and temperature structure multiple times at each timestep to ensure
-	! that extra hydrostatic pressure predicted by the subsidence, and subsidence predicted by conductive model with pressure
-	! and temperature-dependent parameters converge and are self-consistent. This can be implemented but slows the code 
-	! down significantly and makes little difference to the result.
+    ! N.B. changes in pressure profile due to extra water filling in accommodation space created by subsidence are 
+    ! ignored here --> initial pressure profile is maintained when calculating pressure-dependent density and conductivity
+    ! changes.
+    ! This avoids the need to iterate over the subsidence and temperature structure multiple times at each timestep to ensure
+    ! that extra hydrostatic pressure predicted by the subsidence and subsidence predicted by conductive model with pressure
+    ! and temperature-dependent parameters converge and are self-consistent. This can be implemented with a Newton-Raphson
+    ! step but slows the code down significantly and makes little difference to the result.
     do i=0,zc
       intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.)))
-      p(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i)))	
+      p(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i)))    
       cp(i)=((0.15*((k0fofa)+(k1fofa*(Ta(i)**(-1./2.)))+(k3fofa*(Ta(i)**(-3.)))))+&
-	(0.2*(c0_cpx+(c1_cpx*Ta(i))+(c2_cpx*(Ta(i)**(-2.)))+(c3_cpx*(Ta(i)**(-1./2.)))+&
-	    (c4_cpx*(Ta(i)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(i))+(c2_plag*(Ta(i)**(-2.)))+&
-		(c3_plag*(Ta(i)**(-1./2.)))+(c4_plag*(Ta(i)**2.)))))
+    (0.2*(c0_cpx+(c1_cpx*Ta(i))+(c2_cpx*(Ta(i)**(-2.)))+(c3_cpx*(Ta(i)**(-1./2.)))+&
+        (c4_cpx*(Ta(i)**2.))))+(0.65*(c0_plag+(c1_plag*Ta(i))+(c2_plag*(Ta(i)**(-2.)))+&
+        (c3_plag*(Ta(i)**(-1./2.)))+(c4_plag*(Ta(i)**2.)))))
       Dc(i)=(a_crust+(b_crust*exp(-(Ta(i)-T0)/c_crust))+(d_crust*exp(-(Ta(i)-T0)/e_crust)))*1e-6
       krad(i)=Ar*exp(-(((Ta(i)-Tar)**(2.))/(2*(xa**(2.)))))+Br*exp(-(((Ta(i)-Tbr)**(2.))/(2*(xb**(2.)))))
       ka(i)=(p(i)*Dc(i)*cp(i)*exp(dkP*(prdat0(i)/1.e+9)))+krad(i)
@@ -521,11 +521,11 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
 
   ! ------------------------------------------------------------------------
   subroutine set_eqn(Ta,Tn,cz,czm,p,cp,cor,dtb,Tbase,dz)
-	  
+      
     !    sets up A matrix and b vector to solve Ax=b
     !    advances T(n) to h(n+dt)
     !    calls tridiagonal solver
-	
+    
     use global
     implicit none
     real(wp), dimension(0:nz), intent(in)  ::  Ta, cz,czm,cor,p,cp,dz
@@ -561,11 +561,11 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     Tn(:)=0.
     call gtri(al,ad,au,ab,x,0,nz)
     do i=0,nz
-	if (x(i) .le. 0) then
-	    Tn(i)=0.
-	else 
-	    Tn(i)=x(i)
-	end if
+    if (x(i) .le. 0) then
+        Tn(i)=0.
+    else 
+        Tn(i)=x(i)
+    end if
     end do
 
     return
@@ -574,7 +574,7 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
 ! ------------------------------------------------------------------------
  
   subroutine gtri(l,d,u,b,x,n1,n2)
-	  
+      
     ! solves tridiagonal system LnXn-1 + DnXn + UnXn+1=Bn (1<=n<=nz)
 
     implicit none
@@ -585,7 +585,7 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     real(wp) :: t
     integer :: i
 
-    if (d(1) == 0.) then 				! if diagonal matrix has only 1 value, stop
+    if (d(1) == 0.) then                 ! if diagonal matrix has only 1 value, stop
        write(1,*) 'singular matrix'
        stop
     end if
@@ -607,9 +607,9 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
 ! -------------------------------------------------
   
   function brent(xmin,xin)
-	  
-	! Brent minimisation algorithm to find (V0/V)T 
-	
+      
+    ! Brent minimisation algorithm to find (V0/V)T 
+    
     use global
     implicit none    
     real(wp) :: brent,xin,xmin
@@ -655,12 +655,12 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
         q=abs(q)
         etemp=e
         e=dd
-	if(abs(p).ge.abs(0.5*q*etemp).or.p.le.q*(a-x).or.p.ge.q*(b-x)) goto 1
-	!The above conditions determine the acceptability of the parabolic fit. Here it is o.k.:
-	dd=p/q !Take the parabolic step.
-	u=x+dd
-	if(u-a.lt.tol2 .or. b-u.lt.tol2) dd=sign(tol1,xm-x)
-	goto 2     !Skip over the golden section step.
+    if(abs(p).ge.abs(0.5*q*etemp).or.p.le.q*(a-x).or.p.ge.q*(b-x)) goto 1
+    !The above conditions determine the acceptability of the parabolic fit. Here it is o.k.:
+    dd=p/q !Take the parabolic step.
+    u=x+dd
+    if(u-a.lt.tol2 .or. b-u.lt.tol2) dd=sign(tol1,xm-x)
+    goto 2     !Skip over the golden section step.
       endif
 1     if(x.ge.xm) then    !We arrive here for a golden section step, which we take
         e=a-x     !into the larger of the two segments.
@@ -693,14 +693,14 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
           b=u
         endif
         if(fu.le.fw .or. w.eq.x) then
-	  v=w
-	  fv=fw
-	  w=u
-	  fw=fu
-	else if(fu.le.fv .or. v.eq.x .or. v.eq.w) then
-	  v=u
-	  fv=fu
-	endif
+      v=w
+      fv=fw
+      w=u
+      fw=fu
+    else if(fu.le.fv .or. v.eq.x .or. v.eq.w) then
+      v=u
+      fv=fu
+    endif
       endif      !Done with housekeeping. Back for another iteration.
     enddo 
     write(*,*) 'brent exceed maximum iterations'
@@ -712,9 +712,9 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
 ! -------------------------------------------------
 
   function rtbis(pb,cont,pw,rd)
-	  
-	! root bisection to find seafloor subsidence
-	
+      
+    ! root bisection to find seafloor subsidence
+    
     use global
     implicit none    
     real(wp) :: rtbis,pb,cont,fmid,f,xmid,dx,pw,rd
@@ -724,8 +724,8 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     integer, parameter :: jmax=100
     integer :: j
     
-	! Using bisection, find the root of a function known to lie between AX and BX.
-	! The root, returned as rtbis, will be refined until its accuracy is +/-xacc
+    ! Using bisection, find the root of a function known to lie between AX and BX.
+    ! The root, returned as rtbis, will be refined until its accuracy is +/-xacc
 
 
     fmid=((pb/(pb-(1028.+(2.4*(BX+rd)))))*cont)-BX
@@ -745,11 +745,11 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
       xmid=rtbis+dx
       fmid=((pb/(pb-(1028.+(2.4*(xmid+rd)))))*cont)-xmid
       if (fmid.le.0) then
-	rtbis=xmid
+    rtbis=xmid
       endif
       if (abs(dx).lt.xacc.or.fmid.eq.0) then
-      	pw=1028.+(2.4*(rtbis+rd))
-	return
+          pw=1028.+(2.4*(rtbis+rd))
+    return
       endif
     enddo
     write(*,*) 'too many root bisections'
