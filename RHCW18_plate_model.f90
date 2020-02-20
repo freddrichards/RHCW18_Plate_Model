@@ -472,6 +472,13 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     real(wp), dimension(0:nz) :: Dc
     integer  :: i
     
+	! N.B. changes in pressure profile due to extra water filling in accommodation space created by subsidence 
+	! are ignored here --> initial pressure profile is maintained when calculating pressure-dependent density 
+	! and conductivity changes.
+	! This avoids the need to iterate the subsidence and temperature structure multiple times at each timestep to ensure
+	! that extra hydrostatic pressure predicted by the subsidence, and subsidence predicted by conductive model with pressure
+	! and temperature-dependent parameters converge and are self-consistent. This can be implemented but slows the code 
+	! down significantly and makes little difference to the result.
     do i=0,zc
       intalphaT(i)=(a0c*(Ta(i)-T0))+((a1c/2.)*((Ta(i)**2.)-(T0**2.)))
       p(i)=rhoP0(i)*(1.-(alphaP0(i)*intalphaT(i)))	
