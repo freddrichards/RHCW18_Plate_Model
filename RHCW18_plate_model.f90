@@ -18,17 +18,17 @@ program RHCW18
   ! ------------------------------------------------------------------------
   
   ! model setup
-  integer,  parameter :: itmax = 100000000     ! maximum number of iterations
-  real(wp), parameter :: tmax  = 9.4670208e15  ! model run time
-  real(wp), parameter :: dzinit = 1000.        ! initial depth interval between nodes (i and i+1 positions)
-  integer,  parameter :: zc     = 7            ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
-  real(wp), parameter :: T0=273. ! reference temperature
-  real(wp), parameter :: roundtol=1. ! rounding tolerance (K)
-  integer,  parameter :: ditplot = 10000            ! no. iterations between outputs
-  real(wp), parameter :: dtplot = 3.1556736e12_wp    ! time between outputs
-  logical,  parameter :: hplot = .true.                ! turn on write h.txt
+  integer,  parameter :: itmax = 1e8          ! maximum number of iterations
+  real(wp), parameter :: secMa = 3.1556736e13 ! seconds per Ma
+  real(wp), parameter :: agemax  = 300 		  ! model run time in Ma
+  real(wp), parameter :: dzinit = 1000.       ! initial depth interval between nodes (i and i+1 positions)
+  integer,  parameter :: zc     = 7           ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
+  real(wp), parameter :: T0=273.              ! reference temperature
+  real(wp), parameter :: roundtol=1.          ! rounding tolerance (K)
+  real(wp), parameter :: dageplot = 0.1       ! time between outputs (Ma)
 
-    
+
+
   ! reference densities
   real(wp), parameter :: p0=3330. ! mantle
   real(wp), parameter :: p0c=2950. ! crust
@@ -40,8 +40,7 @@ program RHCW18
   real(wp), parameter ::  KT=4.8 ! temperature derivative of bulk modulus
   real(wp), parameter ::  grun=6. ! Gruneisen parameter
   
-
-
+  
   
   ! olivine thermal expansivity (Bouhifd et al. 1996)
   real(wp), parameter :: a0=2.832e-5
@@ -88,13 +87,14 @@ program RHCW18
 
 
 
+
   ! mantle diffusivity (Grose & Afonso, 2013)
   real(wp), parameter ::  a_ol =0.565
   real(wp), parameter ::  b_ol =0.67
   real(wp), parameter ::  c_ol =590.
   real(wp), parameter ::  d_ol =1.4
   real(wp), parameter ::  e_ol =135
-  
+ 
   ! crustal diffusivity (Grose & Afonso, 2013)
   ! clinopyroxene
   real(wp), parameter ::  a_cpx =0.59
@@ -113,8 +113,6 @@ program RHCW18
   real(wp), parameter ::  d_crust =0.371
   real(wp), parameter ::  e_crust =226.
   
-  
-  
   ! Pressure dependence of lattice conductiviity
   real(wp), parameter ::  dkP =0.05 ! in GPa^-1
   
@@ -125,8 +123,7 @@ program RHCW18
   real(wp), parameter ::  Tar = 490.+(1850.*exp(-((d**0.315)/0.825)))+(875.*exp(-d/0.18))
   real(wp), parameter ::  Tbr = 2700.+(9000.*exp(-((d**0.5)/0.205)))
   real(wp), parameter ::  xa = 167.5+(505.*exp(-((d**0.5)/0.85)))
-  real(wp), parameter ::  xb = 465.+(1700.*exp(-((d**0.94)/0.175)))
-  
+  real(wp), parameter ::  xb = 465.+(1700.*exp(-((d**0.94)/0.175))) 
   
   ! ------------------------------------------------------------------------
   ! Read input arguments
@@ -136,7 +133,7 @@ program RHCW18
   
   narg=command_argument_count() ! count number of input arguments
   !Loop over the arguments
-  if(narg>0)then
+  if(narg==3)then
     do cptArg=1,narg
       call get_command_argument(cptArg,name)
       if(cptArg==1)then
@@ -148,8 +145,8 @@ program RHCW18
       end if
     end do
   else
-    ! Throw error if insufficient arguments.
-    write(*,*)"Not enough input parameters given, format is ./cool Tpot zp rd"
+    ! Throw error if wrong number of input arguments.
+    write(*,*)"Incorrect number of input parameters, format is ./cool [Tp] [zp] [zr]"
     stop
   end if 
   
@@ -170,7 +167,7 @@ contains
     implicit none
 
     ! set variables
-    real(wp) :: t, dt, tplot, Tbase, dtinit
+    real(wp) :: t, dt, Tbase, dtinit, tplot
     real(wp) :: sump0, ref_rd, ref_sub, xmin
     integer :: it, i, nz, Tpot
     real(wp), dimension(0:nz)  :: Tm, Told, pdat0, prdat0, dz0
@@ -202,13 +199,14 @@ contains
     do i=0,nz
       read(4,*) Tm(i)            ! melting parameterisation-derived temperature in deg C
     end do
-    Tm=Tm+273.                    ! convert to K
+    Tm=Tm+273.                   ! convert to K
     close(4)
     
     ! set initial values
     Tbase=Tm(nz)                ! set basal temperature to adiabatic value at zp
-    t = 0._wp                    ! set time = 0
-    dtinit=(dzinit**2.)/(2.2*(6./((3100.*100.)/0.14069)))  ! set timestep
+    t = 0._wp                   ! set time = 0
+	tplot = dageplot*secMa	    ! set first datapoint in time
+    dtinit=(dzinit**2.)/(2.2*(6./((3100.*100.)/0.14069)))  ! set timestep (see McKenzie et al., 2005)
     dt = dtinit ! set timestep to initial value
     Told=Tm ! set initial temperature profile
     ref_rd=rd/1000. ! reference ridge depth used in initial pressure profile calculation
@@ -257,12 +255,12 @@ contains
     it = 1
 
     ! enter time loop
-    do while ((t < tmax) .and. (it < itmax)) ! while within timeframe and max iterations
-      call timestep(Tm,Told,t,dt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it) ! finite difference calculation step
+    do while ((t/secMa < agemax) .and. (it < itmax)) ! while within timeframe and max iterations
+  	  call timestep(Tm,Told,t,dt,Tbase,alphaP0,rhoP0,prdat0,pdat0,it) ! finite difference calculation step
       t = t+dt ! reset time
-      if (t > tplot .and. hplot) then        ! if profiles are required
-          call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0)            ! write time, distance inc.+ height > file1
-          tplot = tplot + dtplot                ! increase tplot by dtplot
+      if (t > tplot) then		! if output required
+ 	     call output(Tm,t,sump0,alphaP0,rhoP0,pdat0,prdat0) ! write output to file
+  	     tplot = tplot + (dageplot*secMa)			        ! increase tplot by dtplot
       end if
       it = it + 1                            ! add 1 to iteration count
     end do
@@ -335,8 +333,8 @@ contains
  
     ! determine subsidence as a function of age using density at compensation depth and pressure-dependence of water density
     rdk=rd/1000. ! ridge depth in km
-    depth=rtbis(pb,(contraction/dzinit),pw,rdk)*dzinit !iterates to find subsidence as water density is a function of depth 
-    write(7,'(2e25.16e3)') age, depth
+    depth=(rtbis(pb,(contraction/dzinit),pw,rdk)+rdk)*dzinit !iterates to find subsidence as water density is a function of depth 
+    write(7,'(2e25.16e3)') age, depth ! write out age (Ma) and depth (m)
     
     ! determine temperature evolution as a function of age and depth within the plate
     cum_contract(0)=1.
@@ -344,7 +342,7 @@ contains
     do i=0,nz
       cum_contract(i)=((pdat0(i)/pdat(i))+cum_contract(i-1)) ! cumulative contraction (assumes vertical contraction so pressure at base of each cell is conserved)
       mean_contract(i)=cum_contract(i)/j ! mean contraction
-      write(5,'(4e25.16e3)') age, i*mean_contract(i), (i*mean_contract(i))+(depth/dzinit), Ta(i)
+      write(5,'(4e25.16e3)') age, i*mean_contract(i), (i*mean_contract(i))+(depth/dzinit), Ta(i)-T0 ! write out age (Ma), depth below top of plate (km), depth below sea-level (km) and temperature (°C).
       j=j+1.
     end do
 
