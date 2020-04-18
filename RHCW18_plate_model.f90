@@ -288,7 +288,7 @@ contains
     integer  :: i,minflag
 
     ! convert time to seconds
-    age=t/(10.**6.*24.*60.*60.*365.24)
+    age=t/secMa
 
     minflag=0 ! set flag for working out minimum depth at which densities match between timesteps
    
