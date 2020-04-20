@@ -25,16 +25,16 @@ where Tp is potential temperature in °C, zp is plate thickness in km and zr is 
 Output files
 ------------
 
-depth-[Tp]-[zp]-[zr].dat: Depth as a function of age:   Column 1 - Age (Myr)
-                                                        Column 2 - Depth below sea-level (m)
+depth-[Tp]-[zp]-[zr].dat: Depth as a function of age:   Column 1 - Age (Myr);
+                                                        Column 2 - Depth below sea-level (m).
 
-hf-[Tp]-[zp].dat: Heat flow as a function of age:       Column 1 - Age (Myr)
-                                                        Column 2 - Surface heat flow (W m^-2)
+hf-[Tp]-[zp].dat: Heat flow as a function of age:       Column 1 - Age (Myr);
+                                                        Column 2 - Surface heat flow (W m^-2).
 
-Tgrid-[Tp]-[zp].dat: Temperature structure:             Column 1 - Age (Myr)
-                                                        Column 2 - Depth below top of plate (km)
-                                                        Column 3 - Depth below sea-level (km)
-                                                        Column 4 - Temperature (°C)
+Tgrid-[Tp]-[zp].dat: Temperature structure:             Column 1 - Age (Myr);
+                                                        Column 2 - Depth below top of plate (km);
+                                                        Column 3 - Depth below sea-level (km);
+                                                        Column 4 - Temperature (°C).
 
 ------------
 Citations:
