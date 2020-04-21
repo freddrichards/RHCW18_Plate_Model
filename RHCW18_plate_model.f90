@@ -22,7 +22,7 @@ program RHCW18
   real(wp), parameter :: secMa = 3.1556736e13 ! seconds per Ma
   real(wp), parameter :: agemax  = 300 		  ! model run time in Ma
   real(wp), parameter :: dzinit = 1000.       ! initial depth interval between nodes (i and i+1 positions)
-  integer,  parameter :: zc     = 7           ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
+  integer,  parameter :: zc     = 7.          ! integer - node corresponding to crustal thickness (must be nearest integer number of depth node spacings)
   real(wp), parameter :: T0=273.              ! reference temperature
   real(wp), parameter :: roundtol=1.          ! rounding tolerance (K)
   real(wp), parameter :: dageplot = 0.1       ! time between outputs (Ma)
@@ -619,8 +619,8 @@ subroutine set_var(Ta,cz,czm,p,cp,alphaP0,rhoP0,prdat0,pdat0,dz)
     real(wp), parameter :: CX=2.0
     real(wp), parameter :: tol=1.48e-8
     
-!     given a function f, and given a bracketing triplet of abscissas AX, bx, cx (such that bx is
-!     between AX and cx, and f(bx) is less than both f(AX) and f(CX)), this routine isolates
+!     given a function f, and given a bracketing triplet of abscissas AX, BX, CX (such that BX is
+!     between AX and CX, and f(bx) is less than both f(AX) and f(CX)), this routine isolates
 !     the minimum to a fractional precision of about tol using Brent’s method. The abscissa of
 !     the minimum is returned as xmin, and the minimum function value is returned as brent,
 !     the returned function value.
